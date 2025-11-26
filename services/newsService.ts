@@ -84,8 +84,15 @@ export const fetchNews = async (startDate: string, endDate: string): Promise<Bot
 
     responses.forEach(data => {
       if (!data || !data.contents) return;
+      // Basic validation to ensure we have something that looks like XML
+      if (data.contents.trim().charAt(0) !== '<') return;
+
       try {
         const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+        // Check for parser errors
+        const parserError = xmlDoc.querySelector("parsererror");
+        if (parserError) return;
+
         const items = xmlDoc.querySelectorAll("item");
         items.forEach(item => {
           const title = item.querySelector("title")?.textContent || "";
