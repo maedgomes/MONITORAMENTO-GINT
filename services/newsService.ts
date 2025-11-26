@@ -8,6 +8,46 @@ const SECURITY_KEYWORDS = ['polícia', 'policia', 'militar', 'civil', 'federal',
 
 const BLACKLIST = ['horóscopo', 'futebol', 'campeonato', 'novela', 'bbb', 'reality', 'promoção', 'black friday', 'oferta', 'show', 'agenda cultural', 'receita', 'gastronomia', 'turismo', 'brasileirão', 'copa', 'jogo', 'previsão do tempo', 'resumo da novela', 'fofoca', 'bolsonaro', 'lula', 'michelle', 'janja', 'planalto', 'brasília', 'stf', 'congresso', 'câmara dos deputados', 'senado', 'ministro', 'eleições 2026', 'partido liberal', 'pt ', 'pl ', 'concurso', 'edital', 'vaga', 'processo seletivo', 'inscrições', 'estágio', 'trainee', 'emprego', 'sine', 'currículo', 'vestibular'];
 
+// Helper to fetch RSS using multiple proxies if one fails
+const fetchRSS = async (url: string): Promise<string | null> => {
+  const encodedUrl = encodeURIComponent(url);
+  const proxies = [
+    // Primary: AllOrigins (returns JSON with contents)
+    {
+      url: `https://api.allorigins.win/get?url=${encodedUrl}`,
+      extract: async (res: Response) => {
+        const json = await res.json();
+        return json.contents;
+      }
+    },
+    // Fallback: CodeTabs (returns raw text)
+    {
+      url: `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`,
+      extract: async (res: Response) => {
+        return await res.text();
+      }
+    }
+  ];
+
+  for (const proxy of proxies) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per proxy
+
+      const res = await fetch(proxy.url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) continue;
+      
+      const content = await proxy.extract(res);
+      if (content && content.length > 0) return content;
+    } catch (e) {
+      console.warn(`Proxy failed: ${proxy.url}`, e);
+    }
+  }
+  return null;
+};
+
 export const fetchNews = async (startDate: string, endDate: string): Promise<BotResultItem[]> => {
   let timeFilter = 'when:2d';
   
@@ -31,19 +71,10 @@ export const fetchNews = async (startDate: string, endDate: string): Promise<Bot
   ];
 
   try {
-    const promises = queries.map(q => {
-      const encodedQuery = encodeURIComponent(q);
-      const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
-      // Using allorigins to bypass CORS for RSS
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-      
-      const fetchPromise = fetch(proxyUrl).then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json();
-      });
-      // 15s timeout
-      const timeoutPromise = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000));
-      return Promise.race([fetchPromise, timeoutPromise]).catch(err => ({ contents: null }));
+    const promises = queries.map(async (q) => {
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+      const contents = await fetchRSS(rssUrl);
+      return { contents };
     });
 
     const responses = await Promise.all(promises);
@@ -103,8 +134,10 @@ export const fetchNews = async (startDate: string, endDate: string): Promise<Bot
       
       const fullText = (item.title + " " + item.snippet).toLowerCase();
       if (BLACKLIST.some(term => fullText.includes(term))) return;
+      
+      // More robust filtering
       const isSecurity = SECURITY_KEYWORDS.some(term => fullText.includes(term));
-      const isLocalSource = fullText.includes('gazeta') || fullText.includes('tribuna') || fullText.includes('folha vitória') || fullText.includes('aquinoticias') || fullText.includes('jornal fato');
+      const isLocalSource = ['gazeta', 'tribuna', 'folha vitória', 'aquinoticias', 'jornal fato', 'es hoje'].some(s => fullText.includes(s));
       const hasLocation = LOCATION_KEYWORDS.some(loc => fullText.includes(loc));
 
       if (isSecurity && (hasLocation || isLocalSource)) {
@@ -118,7 +151,7 @@ export const fetchNews = async (startDate: string, endDate: string): Promise<Bot
 
   } catch (error) {
     console.error(error);
-    throw new Error("Falha ao buscar notícias. Verifique sua conexão.");
+    throw new Error("Falha ao buscar notícias. Tente novamente mais tarde.");
   }
 };
 
