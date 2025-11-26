@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Shield, FileText, Plus, Trash2, CheckCircle, Share2, 
   Wand2, Loader2, Bot, RefreshCw, Calendar, CheckSquare, 
-  Square, Edit2, Link as LinkIcon, FileSpreadsheet, Copy, Filter, Download, Globe, Search
+  Square, Edit2, Link as LinkIcon, FileSpreadsheet, Copy, Filter, Download, Globe, Search, AlertCircle
 } from 'lucide-react';
 
 import { Header } from './components/Header';
@@ -225,7 +225,7 @@ export default function App() {
     
     const success = await copyToClipboardHelper(`${headers}\n${rows}`);
     if (success) {
-      setCopySuccess('Tabela copiada para a área de transferência!');
+      setCopySuccess('Tabela copiada (Excel)');
       setTimeout(() => setCopySuccess(''), 4000);
     }
   };
@@ -261,7 +261,7 @@ export default function App() {
               activeTab === 'relatorio' ? 'border-amber-500 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <FileText size={18} /> Relatório Final <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs ml-1">{newsList.length}</span>
+            <FileText size={18} /> Relatório Final <span className={`px-2 py-0.5 rounded-full text-xs ml-1 ${newsList.length > 0 ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-200 text-slate-700'}`}>{newsList.length}</span>
           </button>
         </div>
 
@@ -288,14 +288,14 @@ export default function App() {
                       type="date" 
                       value={searchStartDate}
                       onChange={(e) => setSearchStartDate(e.target.value)}
-                      className="flex-1 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-400 outline-none"
+                      className="flex-1 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-400 outline-none text-slate-600 font-medium"
                     />
                     <span className="text-slate-400 text-xs">até</span>
                     <input 
                       type="date" 
                       value={searchEndDate}
                       onChange={(e) => setSearchEndDate(e.target.value)}
-                      className="flex-1 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-400 outline-none"
+                      className="flex-1 p-2 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-400 outline-none text-slate-600 font-medium"
                     />
                   </div>
                 </div>
@@ -308,7 +308,11 @@ export default function App() {
                   {isSearchingBot ? <><Loader2 className="animate-spin" size={16} /> ANALISANDO FONTES...</> : "ATUALIZAR RADAR"}
                 </button>
 
-                {botError && <div className="text-xs text-red-600 bg-red-50 p-3 rounded mb-3 border border-red-100 flex items-center gap-2"><Shield size={12}/> {botError}</div>}
+                {botError && (
+                  <div className="text-xs text-red-600 bg-red-50 p-3 rounded mb-3 border border-red-100 flex items-center gap-2">
+                    <AlertCircle size={14}/> {botError}
+                  </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
                   {botResults.map((item, idx) => {
@@ -317,28 +321,32 @@ export default function App() {
                       <div 
                         key={idx} 
                         onClick={() => handleToggleNewsSelection(item)} 
-                        className={`p-3 border rounded-lg transition-all cursor-pointer relative group ${selected ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-400' : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'}`}
+                        className={`p-3 border rounded-lg transition-all cursor-pointer relative group ${selected ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-300' : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'}`}
                       >
                         <div className="flex justify-between items-start mb-1 gap-2">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded">{item.source}</span>
-                          <span className="text-[10px] text-slate-400">{item.pubDateDisplay}</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{item.source}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{item.pubDateDisplay}</span>
                         </div>
                         <div className="flex gap-3 items-start mt-2">
-                           <div className={`mt-1 transition-colors ${selected ? 'text-amber-600' : 'text-slate-300'}`}>
-                              {selected ? <CheckSquare size={20} fill="currentColor" className="text-amber-100" /> : <Square size={20} />}
+                           <div className={`mt-0.5 transition-colors ${selected ? 'text-amber-600' : 'text-slate-300'}`}>
+                              {selected ? <CheckSquare size={18} fill="currentColor" className="text-amber-100" /> : <Square size={18} />}
                            </div>
                            <div className="flex-1">
                               <h4 className={`text-sm font-semibold leading-snug mb-1 ${selected ? 'text-slate-900' : 'text-slate-700'}`}>{item.title}</h4>
-                              <p className="text-xs text-slate-500 line-clamp-2">{item.snippet}</p>
+                              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{item.snippet}</p>
                            </div>
                         </div>
                       </div>
                     );
                   })}
+                  
                   {!isSearchingBot && botResults.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs opacity-60">
-                      <RefreshCw size={32} className="mb-2" />
-                      O radar está aguardando comando.
+                      <div className="bg-slate-100 p-4 rounded-full mb-3">
+                        <RefreshCw size={24} />
+                      </div>
+                      <p>O radar está aguardando comando.</p>
+                      <p className="mt-1">Defina as datas e clique em Atualizar.</p>
                     </div>
                   )}
                 </div>
@@ -350,12 +358,12 @@ export default function App() {
               
               {/* Info Card */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 p-4 rounded-lg flex gap-3 items-start shadow-sm">
-                <div className="bg-white p-1.5 rounded-full shadow-sm text-amber-600">
-                  <CheckCircle size={18} />
+                <div className="bg-white p-1.5 rounded-full shadow-sm text-amber-600 mt-0.5">
+                  <CheckCircle size={16} />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-amber-900">Modo de Seleção Rápida</h3>
-                  <p className="text-xs text-amber-800 mt-1">
+                  <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                     Clique nas notícias do radar para adicionar à lista. O sistema encurtará os links e removerá rastreadores automaticamente.
                   </p>
                 </div>
@@ -379,7 +387,7 @@ export default function App() {
                   <button 
                     onClick={handleAnalyzeWithAI} 
                     disabled={isAnalyzing || !rawText.trim()} 
-                    className="w-24 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded flex flex-col justify-center items-center gap-2 transition-colors"
+                    className="w-24 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded flex flex-col justify-center items-center gap-2 transition-colors shadow-sm"
                   >
                     {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : "Processar"}
                   </button>
@@ -407,14 +415,14 @@ export default function App() {
                   <button 
                     onClick={handleGroundingSearch}
                     disabled={isGrounding || !groundingQuery.trim()}
-                    className="w-24 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded flex items-center justify-center gap-1 transition-colors"
+                    className="w-24 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded flex items-center justify-center gap-1 transition-colors shadow-sm"
                   >
                      {isGrounding ? <Loader2 className="animate-spin" size={14} /> : <><Search size={14}/> Pesquisar</>}
                   </button>
                 </div>
 
                 {groundingResult && (
-                  <div className="bg-teal-50 border border-teal-100 rounded p-3">
+                  <div className="bg-teal-50 border border-teal-100 rounded p-3 animate-in fade-in slide-in-from-top-2">
                     <div className="text-xs text-slate-700 leading-relaxed mb-3 whitespace-pre-wrap">
                       {groundingResult.text}
                     </div>
@@ -563,7 +571,7 @@ export default function App() {
                 type="date" 
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="p-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-amber-300 outline-none bg-white"
+                className="p-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-amber-300 outline-none bg-white text-slate-700"
               />
               {filterDate && (
                 <button onClick={() => setFilterDate('')} className="text-red-600 text-xs font-bold hover:underline">
@@ -605,7 +613,7 @@ export default function App() {
                       
                       <div className="flex-1 min-w-0">
                         {isEditing ? (
-                          <div className="space-y-4">
+                          <div className="space-y-4 animate-in fade-in">
                              <div className="flex justify-between items-center">
                                <h3 className="text-xs font-bold text-amber-600 uppercase">Editando Registro</h3>
                                <button onClick={() => setEditingId(null)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-xs font-bold shadow-sm transition-colors">
