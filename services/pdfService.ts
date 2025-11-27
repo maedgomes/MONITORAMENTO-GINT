@@ -37,13 +37,12 @@ export const generatePDF = (items: NewsItem[]) => {
   // --- CONTENT ---
   
   // Table Config
-  // Alterado "Resumo" para "Link" conforme solicitado
   const tableColumn = ["Data", "Fonte", "Título", "Link"];
   const tableRows = items.map((item) => [
     formatDateDisplay(item.data),
     item.fonte,
     item.titulo,
-    item.link // Substituído item.resumo por item.link
+    "Acessar" // Texto curto para não poluir o relatório
   ]);
 
   // Render Table
@@ -72,10 +71,26 @@ export const generatePDF = (items: NewsItem[]) => {
     columnStyles: {
       0: { cellWidth: 25 },
       1: { cellWidth: 30 },
-      2: { cellWidth: 60, fontStyle: 'bold' }, // Aumentei um pouco a largura do título
-      3: { cellWidth: 'auto' } // Link ocupará o restante
+      2: { cellWidth: 'auto', fontStyle: 'bold' }, // Título ocupa o espaço restante
+      3: { 
+        cellWidth: 20,
+        textColor: [37, 99, 235], // Blue-600 para indicar link
+        halign: 'center'
+      }
     },
-    margin: { top: 70 }
+    margin: { top: 70 },
+    didDrawCell: (data) => {
+      // Adiciona link clicável na coluna 3 (Link) se for o corpo da tabela
+      if (data.section === 'body' && data.column.index === 3) {
+        // Recupera o item original baseado no índice da linha para pegar a URL correta
+        const item = items[data.row.index];
+        const linkUrl = item?.link;
+        
+        if (linkUrl && (linkUrl.startsWith('http://') || linkUrl.startsWith('https://'))) {
+          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: linkUrl });
+        }
+      }
+    }
   });
 
   // Footer / Page Numbers
