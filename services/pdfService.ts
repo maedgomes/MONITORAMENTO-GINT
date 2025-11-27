@@ -37,12 +37,13 @@ export const generatePDF = (items: NewsItem[]) => {
   // --- CONTENT ---
   
   // Table Config
-  const tableColumn = ["Data", "Fonte", "Título", "Resumo"];
+  // Alterado "Resumo" para "Link" conforme solicitado
+  const tableColumn = ["Data", "Fonte", "Título", "Link"];
   const tableRows = items.map((item) => [
     formatDateDisplay(item.data),
     item.fonte,
     item.titulo,
-    item.resumo
+    item.link // Substituído item.resumo por item.link
   ]);
 
   // Render Table
@@ -71,8 +72,8 @@ export const generatePDF = (items: NewsItem[]) => {
     columnStyles: {
       0: { cellWidth: 25 },
       1: { cellWidth: 30 },
-      2: { cellWidth: 50, fontStyle: 'bold' },
-      3: { cellWidth: 'auto' }
+      2: { cellWidth: 60, fontStyle: 'bold' }, // Aumentei um pouco a largura do título
+      3: { cellWidth: 'auto' } // Link ocupará o restante
     },
     margin: { top: 70 }
   });
